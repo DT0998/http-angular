@@ -1,9 +1,15 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpEventType,
+  HttpHeaders,
+  HttpParams,
+} from '@angular/common/http';
 import { IPost } from './post.model';
 import { map } from 'rxjs/operators/map';
 import { throwError, Subject } from 'rxjs';
 import { catchError } from 'rxjs/operators/catchError';
+import { tap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class PostsService {
@@ -15,7 +21,10 @@ export class PostsService {
     this.http
       .post<{ name: string }>(
         'https://angular-complete-guide-dfe68-default-rtdb.firebaseio.com/posts.json',
-        postData
+        postData,
+        {
+          observe: 'response',
+        }
       )
       .subscribe(
         (responseData) => {
@@ -28,9 +37,16 @@ export class PostsService {
   }
 
   fetchPosts() {
+    let searchParams = new HttpParams();
+    searchParams = searchParams.append('print', 'pretty');
+    searchParams = searchParams.append('custom', 'key');
     return this.http
       .get<{ [key: string]: IPost }>(
-        'https://angular-complete-guide-dfe68-default-rtdb.firebaseio.com/posts.json'
+        'https://angular-complete-guide-dfe68-default-rtdb.firebaseio.com/posts.json',
+        {
+          headers: new HttpHeaders({ 'Custom-Header': 'Hello' }),
+          params: searchParams,
+        }
       )
       .pipe(
         map((responseData: { [key: string]: IPost }) => {
@@ -50,8 +66,24 @@ export class PostsService {
   }
 
   deletePosts() {
-    return this.http.delete(
-      'https://angular-complete-guide-dfe68-default-rtdb.firebaseio.com/posts.json'
-    );
+    return this.http
+      .delete(
+        'https://angular-complete-guide-dfe68-default-rtdb.firebaseio.com/posts.json',
+        {
+          observe: 'events',
+          responseType: 'json',
+        }
+      )
+      .pipe(
+        tap((event) => {
+          console.log(event);
+          if (event.type === HttpEventType.Sent) {
+            console.log(event.type);
+          }
+          if (event.type === HttpEventType.Response) {
+            console.log(event.body);
+          }
+        })
+      );
   }
 }
