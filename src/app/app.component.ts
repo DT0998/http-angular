@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators/map';
 import { IPost } from './post.model';
+import { PostsService } from './post.service';
 
 @Component({
   selector: 'app-root',
@@ -12,54 +13,34 @@ export class AppComponent implements OnInit {
   loadedPosts: IPost[] = [];
   isFetching = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private postsService: PostsService) {}
 
   ngOnInit() {
-    this.fetchPosts();
+    this.isFetching = true;
+    this.postsService.fetchPosts().subscribe((posts) => {
+      this.isFetching = false;
+      this.loadedPosts = posts;
+    });
   }
 
   onCreatePost(postData: IPost) {
     // Send Http request
-    console.log(postData);
-    this.http
-      .post<{ name: string }>(
-        'https://angular-complete-guide-dfe68-default-rtdb.firebaseio.com/posts.json',
-        postData
-      )
-      .subscribe((responseData) => {
-        console.log(responseData);
-      });
+    this.postsService.createAndStorePost(postData.title, postData.content);
   }
 
   onFetchPosts() {
     // Send Http request
-    this.fetchPosts();
+    this.isFetching = true;
+    this.postsService.fetchPosts().subscribe((posts) => {
+      this.isFetching = false;
+      this.loadedPosts = posts;
+    });
   }
 
   onClearPosts() {
     // Send Http request
-  }
-  private fetchPosts() {
-    this.isFetching = true;
-    this.http
-      .get<{ [key: string]: IPost }>(
-        'https://angular-complete-guide-dfe68-default-rtdb.firebaseio.com/posts.json'
-      )
-      .pipe(
-        map((responseData: { [key: string]: IPost }) => {
-          const postArray: IPost[] = [];
-          for (const key in responseData) {
-            if (responseData.hasOwnProperty(key)) {
-              postArray.push({ ...responseData[key], id: key });
-            }
-          }
-          return postArray;
-        })
-      )
-      .subscribe((posts) => {
-        console.log(posts);
-        this.isFetching = false;
-        this.loadedPosts = posts;
-      });
+    this.postsService.deletePosts().subscribe(() => { 
+      this.loadedPosts = [];
+    });
   }
 }
